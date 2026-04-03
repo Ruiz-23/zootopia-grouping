@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>疯狂动物城 - 角色扮演分组</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #fdfaf0;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+        h1 { color: #e67e22; margin: 10px 0; }
+        .setup { margin-bottom: 20px; }
+        select, button {
+            font-size: 1.1rem;
+            padding: 10px 25px;
+            border-radius: 12px;
+            border: 2px solid #e67e22;
+            margin: 10px;
+            cursor: pointer;
+            outline: none;
+        }
+        button {
+            background: #e67e22;
+            color: white;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        button:hover { background: #d35400; transform: scale(1.05); }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            height: 180px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .front {
+            background: #3498db;
+            color: white;
+            font-size: 2.5rem;
+            border: 4px solid #fff;
+        }
+        .back {
+            transform: rotateY(180deg);
+            color: white;
+            padding: 10px;
+        }
+        /* 队伍颜色 */
+        .judy { background: #2980b9; } /* 蓝色 */
+        .nick { background: #e67e22; } /* 橙色 */
+        .flash { background: #27ae60; } /* 绿色 */
+        .claw { background: #9b59b6; } /* 紫色 */
+
+        #status {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            color: #27ae60;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🐾 Zootopia Roleplay Grouping 🐾</h1>
+        <div class="setup">
+            <label style="font-weight: bold;">How many students today?</label>
+            <select id="count">
+                <option value="7">7名学生 (2+2+3)</option>
+                <option value="8">8名学生 (2+2+2+2)</option>
+                <option value="9">9名学生 (2+3+4)</option>
+            </select>
+            <button onclick="initGame()">开始抽签</button>
+        </div>
+    </div>
+
+    <div id="gameGrid" class="grid"></div>
+    <div id="status">🎉 All students grouped! Good luck!</div>
+
+    <script>
+        const teams = {
+            judy: { name: 'Team Judy', color: 'judy', icon: '🐰' },
+            nick: { name: 'Team Nick', color: 'nick', icon: '🦊' },
+            flash: { name: 'Team Flash', color: 'flash', icon: '🦥' },
+            claw: { name: 'Team Clawhauser', color: 'claw', icon: '🐆' }
+        };
+
+        // 核心分组逻辑
+        const configs = {
+            7: [
+                { ...teams.judy, count: 2 },
+                { ...teams.nick, count: 2 },
+                { ...teams.flash, count: 3 }
+            ],
+            8: [
+                { ...teams.judy, count: 2 },
+                { ...teams.nick, count: 2 },
+                { ...teams.flash, count: 2 },
+                { ...teams.claw, count: 2 }
+            ],
+            9: [
+                { ...teams.judy, count: 2 },
+                { ...teams.nick, count: 3 },
+                { ...teams.flash, count: 4 }
+            ]
+        };
+
+        let flippedCount = 0;
+        let total = 0;
+
+        function initGame() {
+            const num = document.getElementById('count').value;
+            const config = configs[num];
+            const grid = document.getElementById('gameGrid');
+            const status = document.getElementById('status');
+            
+            let deck = [];
+            config.forEach(t => {
+                for(let i=0; i<t.count; i++) deck.push(t);
+            });
+
+            // 洗牌
+            deck.sort(() => Math.random() - 0.5);
+
+            grid.innerHTML = '';
+            status.style.display = 'none';
+            flippedCount = 0;
+            total = deck.length;
+
+            deck.forEach(data => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="front">?</div>
+                        <div class="back ${data.color}">
+                            <div style="font-size: 3rem;">${data.icon}</div>
+                            <div style="font-weight: bold;">${data.name}</div>
+                            <div style="font-size: 0.8rem; margin-top:5px;">分组配对成功</div>
+                        </div>
+                    </div>
+                `;
+                
+                card.onclick = function() {
+                    if(!this.classList.contains('flipped')) {
+                        this.classList.add('flipped');
+                        flippedCount++;
+                        if(flippedCount === total) {
+                            setTimeout(() => { status.style.display = 'block'; }, 600);
+                        }
+                    }
+                };
+                grid.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
