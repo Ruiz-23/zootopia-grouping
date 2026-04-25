@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>疯狂动物城 - 随机分组大挑战</title>
+    <title>疯狂动物城 - 随机分组大挑战 (扩充版)</title>
     <style>
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -42,14 +42,16 @@
         button:hover { background: #d35400; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(230,126,34,0.3); }
         
         .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 15px;
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
         .card {
+            width: 120px;
             height: 160px;
             perspective: 1000px;
             cursor: pointer;
@@ -80,18 +82,30 @@
             font-size: 2.5rem;
             border: 4px solid #fff;
         }
-        /* 角色主题色 */
-        .judy { background: #2980b9; }
-        .nick { background: #e67e22; }
-        .flash { background: #27ae60; }
-        .claw { background: #9b59b6; }
-        .bogo { background: #34495e; }
+        .back { 
+            transform: rotateY(180deg); 
+            color: white; 
+            padding: 5px;
+            border: 3px solid rgba(255,255,255,0.4);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6); /* 保证浅色背景下文字也能看清 */
+        }
+        
+        /* 头像图片统一样式 */
+        .character-icon {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            margin-bottom: 8px;
+            background-color: white; /* 防止透明PNG显示不佳 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
 
-        .back { transform: rotateY(180deg); color: white; padding: 5px; }
-        .team-name { font-weight: bold; font-size: 0.9rem; margin-top: 5px; }
+        .team-name { font-weight: bold; font-size: 0.95rem; line-height: 1.2; }
         
         #result-info {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: #d35400;
             margin-bottom: 10px;
             font-weight: bold;
@@ -105,11 +119,17 @@
         <h1>🐾 Zootopia Group Draw 🐾</h1>
         <div class="setup">
             <select id="studentCount">
-                <option value="5">5 Students</option>
-                <option value="6">6 Students</option>
-                <option value="7">7 Students</option>
                 <option value="8">8 Students</option>
                 <option value="9">9 Students</option>
+                <option value="10">10 Students</option>
+                <option value="11">11 Students</option>
+                <option value="12">12 Students</option>
+                <option value="13">13 Students</option>
+                <option value="14">14 Students</option>
+                <option value="15">15 Students</option>
+                <option value="16">16 Students</option>
+                <option value="17">17 Students</option>
+                <option value="18">18 Students</option>
             </select>
             <button onclick="startGame()">Start Grouping!</button>
         </div>
@@ -119,21 +139,32 @@
     <div id="gameGrid" class="grid"></div>
 
     <script>
+        // 更新为9个角色，并直接引用文件夹路径（注意转义Gary单引号，或者用双引号包裹路径）
         const characters = [
-            { id: 'judy', name: 'Team Judy', color: 'judy', icon: '🐰' },
-            { id: 'nick', name: 'Team Nick', color: 'nick', icon: '🦊' },
-            { id: 'flash', name: 'Team Flash', color: 'flash', icon: '🦥' },
-            { id: 'claw', name: 'Team Clawhauser', color: 'claw', icon: '🐆' },
-            { id: 'bogo', name: 'Team Chief Bogo', color: 'bogo', icon: '🐃' }
+            { id: 'judy', name: 'Team Judy', color: '#2980b9', img: "zootopia_icons/Judy icon1.png" },
+            { id: 'nick', name: 'Team Nick', color: '#e67e22', img: "zootopia_icons/Nick icon1.png" },
+            { id: 'flash', name: 'Team Flash', color: '#27ae60', img: "zootopia_icons/flash icon1.png" },
+            { id: 'claw', name: 'Team Clawhauser', color: '#f39c12', img: "zootopia_icons/clawhausericon1.png" },
+            { id: 'gazelle', name: 'Team Gazelle', color: '#e84393', img: "zootopia_icons/Gazelle icon1.png" },
+            { id: 'bub', name: 'Team Bub', color: '#95a5a6', img: "zootopia_icons/bub icon.png" },
+            { id: 'chad', name: 'Team Chad', color: '#7f8c8d', img: "zootopia_icons/chad icon1.png" },
+            { id: 'gary', name: 'Team Gary', color: '#34495e', img: "zootopia_icons/Gary De'Snake icon1.png" },
+            { id: 'nibbles', name: 'Team Nibbles', color: '#d35400', img: "zootopia_icons/Nibbles icon1.png" }
         ];
 
-        // 核心逻辑：定义每种总人数下所有可能的组合方案
+        // 扩充的分配策略库，保证总人数相符，每组2-4人，且队伍数不超过9支
         const groupingStrategies = {
-            5: [[2, 3]],
-            6: [[3, 3], [2, 2, 2], [2, 4]],
-            7: [[3, 4], [2, 2, 3]],
-            8: [[4, 4], [2, 2, 2, 2], [2, 3, 3]],
-            9: [[3, 3, 3], [2, 3, 4], [2, 2, 2, 3]]
+            8:  [[4, 4], [2, 3, 3], [2, 2, 2, 2]],
+            9:  [[3, 3, 3], [2, 3, 4], [2, 2, 2, 3]],
+            10: [[3, 3, 4], [2, 4, 4], [2, 2, 3, 3]],
+            11: [[3, 4, 4], [2, 3, 3, 3], [2, 2, 3, 4]],
+            12: [[4, 4, 4], [3, 3, 3, 3], [2, 2, 4, 4]],
+            13: [[4, 4, 2, 3], [3, 3, 3, 4], [2, 2, 3, 3, 3]],
+            14: [[4, 4, 3, 3], [3, 3, 4, 4], [2, 3, 3, 3, 3]],
+            15: [[4, 4, 4, 3], [3, 3, 3, 3, 3], [2, 3, 3, 3, 4]],
+            16: [[4, 4, 4, 4], [3, 3, 3, 3, 4], [2, 2, 3, 3, 3, 3]],
+            17: [[4, 4, 4, 3, 2], [3, 3, 3, 4, 4], [2, 3, 3, 3, 3, 3]],
+            18: [[4, 4, 4, 3, 3], [3, 3, 3, 3, 3, 3], [2, 2, 2, 3, 3, 3, 3]]
         };
 
         let flippedCount = 0;
@@ -143,26 +174,26 @@
             const count = parseInt(document.getElementById('studentCount').value);
             const strategies = groupingStrategies[count];
             
-            // 随机选择一种方案
+            // 随机选择一种符合人数的方案
             const selectedStrategy = strategies[Math.floor(Math.random() * strategies.length)];
             
-            // 根据方案生成卡片池
+            // 洗牌角色数组，确保每次出现的队伍英雄都不完全一样
+            const shuffledCharacters = [...characters].sort(() => Math.random() - 0.5);
+            
             let deck = [];
             selectedStrategy.forEach((groupSize, index) => {
-                const char = characters[index];
+                const char = shuffledCharacters[index]; // 按打乱顺序抽取所需数量的角色
                 for(let i = 0; i < groupSize; i++) {
                     deck.push(char);
                 }
             });
 
-            // 提示当前分组模式
             document.getElementById('result-info').innerText = 
                 `Current Mode: ${selectedStrategy.join(' + ')} students per group`;
 
-            // 洗牌
+            // 打乱卡牌池准备渲染
             deck.sort(() => Math.random() - 0.5);
 
-            // 初始化界面
             const grid = document.getElementById('gameGrid');
             grid.innerHTML = '';
             flippedCount = 0;
@@ -171,11 +202,12 @@
             deck.forEach(data => {
                 const card = document.createElement('div');
                 card.className = 'card';
+                // 我们直接使用内联样式设置背景色，并插入img标签读取你的icon
                 card.innerHTML = `
                     <div class="card-inner">
                         <div class="front">?</div>
-                        <div class="back ${data.color}">
-                            <div style="font-size: 2.8rem;">${data.icon}</div>
+                        <div class="back" style="background-color: ${data.color}">
+                            <img src="${data.img}" class="character-icon" alt="${data.name}">
                             <div class="team-name">${data.name}</div>
                         </div>
                     </div>
